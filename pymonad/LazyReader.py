@@ -5,7 +5,7 @@
 
 from pymonad.Monad import *
 
-class Reader(Monad):
+class LazyReader(Monad):
 	""" Represents a Functor for functions allowing authors to map functions over other functions. """
 
 	def __init__(self, functionOrValue):
@@ -28,7 +28,7 @@ class Reader(Monad):
 		else:
 			func = lambda _: functionOrValue
 
-		super(Reader, self).__init__(func)
+		super(LazyReader, self).__init__(func)
 
 	def __call__(self, *args):
 		"""
@@ -51,8 +51,9 @@ class Reader(Monad):
 			except TypeError:
 				raise TypeError("Too many arguments supplied to curried function.")
 
-		if (callable(value)): return Reader(value)
-		else: return value
+		if (callable(value)): 
+			value = LazyReader(value)
+		return value
 
 	def __mul__(self, func):
 		try: return func.fmap(self).fmap(force)
@@ -75,19 +76,19 @@ class Reader(Monad):
 		remaining.
 
 		"""
-		return Reader(lambda x: aFunction(self.getValue()(x)()))
+		return LazyReader(lambda x: aFunction(self.getValue()(x)()))
 	
 	def amap(self, functorValue):
 		""" Applies function stored in the functor to 'functorValue' creating a new function. """
-		return Reader(lambda x: self(x)(functorValue(x)))
+		return LazyReader(lambda x: self(x)(functorValue(x)))
 
 	def bind(self, function):
 		""" Threads a single value through multiple function calls. """
-		return Reader(lambda x: function(self.getValue()(x))(x))
+		return LazyReader(lambda x: function(self.getValue()(x))(x))
 
 	@classmethod
 	def unit(cls, value):
-		return Reader(lambda _: value)
+		return LazyReader(lambda _: value)
 
 	def force(self):
 		return self.value()
@@ -105,7 +106,7 @@ def lazy(aFunction):
 	def buildReader(argValues, numArgs):
 		if (numArgs == 0): return lambda: aFunction(*argValues)
 		else: return lambda x: buildReader(argValues + [x], numArgs - 1)
-	return Reader(buildReader([], numArgs))
+	return LazyReader(buildReader([], numArgs))
 
 if __name__ == "__main__":
 	from pymonad import *
@@ -116,24 +117,31 @@ if __name__ == "__main__":
 	@lazy
 	def add(x, y): return x + y
 
-	print(force(neg(5)))
-	print(force(add(1, 2)))
-	print(force(add(1)(2)))
-	print("unforced: " + str((add(1) * add(2))(3)))
-	print("forced: " + str(force((add(1) * add(2))(3))))
+	#print("forced bare function: " + str(force(neg(5))))
+	#print("unforced bare function: " + str(force(neg(5))))
+	#print(force(add(1, 2)))
+	#print(force(add(1)(2)))
+	#print("unforced composed function: " + str((add(1) * add(2))(3)))
+	#print("forced composed function: " + str(force((add(1) * add(2))(3))))
 
-	@lazy
-	def lazy_div(y, x):
-		if y == 0: return Nothing
-		else: return Just(x / y)
+	#@lazy
+	#def lazy_div(y, x):
+	#	if y == 0: return Nothing
+	#	else: return Just(x / y)
 
-	@curry
-	def div(y, x):
-		if y == 0: return Nothing
-		else: return Just(x / y)
+	#@curry
+	#def div(y, x):
+	#	if y == 0: return Nothing
+	#	else: return Just(x / y)
 
-	print(neg * Just(9))
-	print(add * Just(9) & Just(9))
-	print(force(div(2, 4)))
-	print("Lazy div: " + str(Just(8) >> lazy_div(2)))
-	print("Regular div: " + str(Just(8) >> div(2)))
+	#@lazy
+	#def add2(x): return Just(2 + x)
+
+	#print("binding single arugment lazy function: " + str(Just(9) >> add2))
+	#print(neg * Just(9))
+	#print(add * Just(9) & Just(9))
+	#print(force(div(2, 4)))
+	#print("Lazy div: " + str(Just(8) >> lazy_div(2)))
+	#print("Regular div: " + str(Just(8) >> div(2)))
+
+	print(List(1, 2, 3) >> (add * List(1, 2, 3) & List(1, 2, 3)))
