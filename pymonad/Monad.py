@@ -31,7 +31,7 @@ class Monad(Applicative):
 
 		"""
 		if callable(function): 
-			result = self.bind(function)
+			result = force(self.bind(function))
 			if not isinstance(result, Monad): raise TypeError("Operator '>>' must return a Monad instance.")
 			return result
 		else:

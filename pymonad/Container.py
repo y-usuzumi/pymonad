@@ -21,3 +21,10 @@ class Container(object):
 
 	def __eq__(self, other):
 		return self.value == other.value
+
+	def force(self):
+		return self
+
+def force(value):
+	try: return value.force()
+	except AttributeError: return value
