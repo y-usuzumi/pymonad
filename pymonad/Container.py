@@ -3,6 +3,14 @@
 # Licensed under BSD 3-clause licence.
 # --------------------------------------------------------
 
+class _Variables: 
+	def addVariable(self, varName, value):
+		self.__dict__[varName] = value
+	def clearVariables(self):
+		self.__dict__ = {}
+
+var = _Variables()
+
 class Container(object):
 	""" Represents a wrapper around an arbitrary value and a method to access it. """
 
@@ -19,10 +27,14 @@ class Container(object):
 		""" Returns the value held by the Container. """
 		return self.value
 
+	def force(self):
+		return self
+
 	def __eq__(self, other):
 		return self.value == other.value
 
-	def force(self):
+	def __ror__(self, varName):
+		var.addVariable(varName, force(self).getValue())
 		return self
 
 def force(value):
