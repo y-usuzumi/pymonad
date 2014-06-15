@@ -97,10 +97,9 @@ def curry(aFunction):
 		def add(x, y): return x + y
 
 	"""
-	funcName = aFunction.__code__.co_name
 	numArgs = aFunction.__code__.co_argcount
 	def buildReader(argValues, numArgs):
 		if (numArgs == 0): return aFunction(*argValues)
 		else:
 			return lambda x: buildReader(argValues + [x], numArgs - 1)
-	return Reader(buildReader([], aFunction.__code__.co_argcount))
+	return Reader(buildReader([], numArgs))
