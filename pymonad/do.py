@@ -1,15 +1,47 @@
-from pymonad.Container import force, var
+from pymonad.Container import force, var, VariableDefinition
+from pymonad.LazyReader import lazy
 
-def do(*monadicStatements):
-	result = force(monadicStatements[0])
-	for statement in monadicStatements[1:]:
-		try: result = force(result >> statement)
-		except TypeError: result = force(statement)
+monad = None
+
+def do(withMonad, *monadicStatements):
+	global monad
+	monad = withMonad
+	def build_do_expression(ms):
+		if len(ms) == 1 and isinstance(ms[0], VariableDefinition): return force(ms[0].code)
+		elif len(ms) == 1: return force(ms[0])
+		elif isinstance(ms[0], VariableDefinition): return force(ms[0].code) >> (lambda x: var.updateVariable(ms[0].varName, x) and build_do_expression(ms[1:]))
+		else: return force(ms[0]) >> build_do_expression(ms[1:])
+			
+	result = build_do_expression(monadicStatements)
 	var.clearVariables()
+	monad = None
 	return result
+
+
+@lazy
+def mreturn(value):
+	return monad.unit(value)
 
 if __name__ == "__main__":
 	from pymonad import *
+
+	@lazy
+	def neg(x): 
+		return -x
+
+	@lazy
+	def smallerThanFive(num):
+		if num >= 5: return Left("Oops! Too big.")
+		else: return Right(num)
+
+	x = do( Either
+		  , "x" | mreturn(4)
+		  , "y" | Right(8)
+		  , smallerThanFive(var.y)
+		  , smallerThanFive(var.x)
+	)
+
+	print(x)
 
 	@lazy
 	def add(x, y): return x + y
@@ -19,45 +51,37 @@ if __name__ == "__main__":
 		if y == 0: return Nothing
 		else: return Just(x // y)
 
-	x = do(
-		"x" | Just(8),
-		"y" | div(2, var.x),
-		add * Just(var.x) & Just(var.y),
-		#Just(9)
+	x = do( Maybe
+	      , Just(8)
+	      , div(2, 10)
+		  , "x" | Just(16)
+		  , "x" | div(2, var.x)
+		  , div(var.x, 32)
+		  , mreturn(var.x)
 	)
 
 	print(x)
-
-	try:
-		print(var.x)
-		print(var.y)
-	except: print("You should see this because the 'var' variables aren't accessible outside of a do block.")
-
-	try:
-		x = do( Just(var.x) )
-	except:
-		print("And you should see this, because 'var' variables are local to the do block where they're created.")
 
 	@lazy
-	def mul(x, y): return Right(x * y)
+	def plusMinus(x):
+		return List(x, -x)
 
-	x = do( "x" | Right(2)
-	      , mul(2)
-		  #, "y" | Left("error")
-		  , "y" | mul(3, var.x)
-		  , mul(var.x, var.y)
-		  , add * Right(var.x) & Right(var.y)
+	x = do( List
+		  , "x" | List(1, 2, 3)
+	      , plusMinus(var.x)
 	)
 
 	print(x)
 
-	#@lazy
-	#def plusMinus(x):
-	#	return List(x, -x)
+	@lazy
+	def add(x, y):
+		return StringWriter(x + y, "Added " + str(x) + " and " + str(y) + ".")
 
-	#x = do( "x" | List(1, 2, 3)
-	#      , plusMinus(var.x)
-	#	  #, add * List(1, 2, 3) & List(1, 2, 3)
-	#)
+	x = do( StringWriter
+	      , "x" | mreturn(1)
+		  , "y" | mreturn(2)
+		  , "z" | add(var.x, var.y)
+		  , add(var.y, var.z)
+	)
 
-	#print(x)
+	print(x)
