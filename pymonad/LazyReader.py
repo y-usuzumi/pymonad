@@ -56,8 +56,7 @@ class LazyReader(Monad):
 		return value
 
 	def __mul__(self, func):
-		try: return func.fmap(self).fmap(force)
-		except TypeError: return func.fmap(self)
+		return func.fmap(self).fmap(force)
 
 	def fmap(self, aFunction):
 		""" 
@@ -91,7 +90,8 @@ class LazyReader(Monad):
 		return LazyReader(lambda _: value)
 
 	def force(self):
-		return self.value()
+		try: return self.value()
+		except TypeError: return self
 
 def lazy(aFunction):
 	""" 
@@ -104,7 +104,7 @@ def lazy(aFunction):
 	"""
 	numArgs = aFunction.__code__.co_argcount
 	def buildReader(argValues, numArgs):
-		if (numArgs == 0): return lambda: aFunction(*argValues)
+		if (numArgs == 0): return lambda: aFunction(*map(force, argValues))
 		else: return lambda x: buildReader(argValues + [x], numArgs - 1)
 	return LazyReader(buildReader([], numArgs))
 
@@ -117,31 +117,29 @@ if __name__ == "__main__":
 	@lazy
 	def add(x, y): return x + y
 
-	#print("forced bare function: " + str(force(neg(5))))
-	#print("unforced bare function: " + str(force(neg(5))))
-	#print(force(add(1, 2)))
-	#print(force(add(1)(2)))
-	#print("unforced composed function: " + str((add(1) * add(2))(3)))
-	#print("forced composed function: " + str(force((add(1) * add(2))(3))))
+	print("forced bare function: " + str(force(neg(5))))
+	print("unforced bare function: " + str(force(neg(5))))
+	print(force(add(1, 2)))
+	print(force(add(1)(2)))
+	print("unforced composed function: " + str((add(1) * add(2))(3)))
+	print("forced composed function: " + str(force((add(1) * add(2))(3))))
 
-	#@lazy
-	#def lazy_div(y, x):
-	#	if y == 0: return Nothing
-	#	else: return Just(x / y)
+	@lazy
+	def lazy_div(y, x):
+		if y == 0: return Nothing
+		else: return Just(x / y)
 
-	#@curry
-	#def div(y, x):
-	#	if y == 0: return Nothing
-	#	else: return Just(x / y)
+	@curry
+	def div(y, x):
+		if y == 0: return Nothing
+		else: return Just(x / y)
 
-	#@lazy
-	#def add2(x): return Just(2 + x)
+	@lazy
+	def add2(x): return Just(2 + x)
 
-	#print("binding single arugment lazy function: " + str(Just(9) >> add2))
-	#print(neg * Just(9))
-	#print(add * Just(9) & Just(9))
-	#print(force(div(2, 4)))
-	#print("Lazy div: " + str(Just(8) >> lazy_div(2)))
-	#print("Regular div: " + str(Just(8) >> div(2)))
-
-	print(List(1, 2, 3) >> (add * List(1, 2, 3) & List(1, 2, 3)))
+	print("binding single arugment lazy function: " + str(Just(9) >> add2))
+	print(neg * Just(9))
+	print(add * Just(9) & Just(9))
+	print(force(div(2, 4)))
+	print("Lazy div: " + str(Just(8) >> lazy_div(2)))
+	print("Regular div: " + str(Just(8) >> div(2)))
