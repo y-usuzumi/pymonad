@@ -3,13 +3,7 @@
 # Licensed under BSD 3-clause licence.
 # --------------------------------------------------------
 
-class _Variables: 
-	def addVariable(self, varName, value):
-		self.__dict__[varName] = value
-	def clearVariables(self):
-		self.__dict__ = {}
-
-var = _Variables()
+from pymonad.DoVariables import var, VariableDefinition
 
 class Container(object):
 	""" Represents a wrapper around an arbitrary value and a method to access it. """
@@ -27,16 +21,15 @@ class Container(object):
 		""" Returns the value held by the Container. """
 		return self.value
 
-	def force(self):
-		return self
-
 	def __eq__(self, other):
 		return self.value == other.value
 
 	def __ror__(self, varName):
-		var.addVariable(varName, force(self).getValue())
-		return self
+		var.addVariable(varName)
+		return VariableDefinition(varName, self)
 
 def force(value):
 	try: return value.force()
-	except AttributeError: return value
+	except AttributeError: 
+		try: return value()
+		except TypeError: return value
