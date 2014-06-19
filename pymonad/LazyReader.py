@@ -3,32 +3,10 @@
 # Licensed under BSD 3-clause licence.
 # --------------------------------------------------------
 
-from pymonad.Monad import *
+from pymonad.Reader import *
 
-class LazyReader(Monad):
+class LazyReader(Reader):
 	""" Represents a Functor for functions allowing authors to map functions over other functions. """
-
-	def __init__(self, functionOrValue):
-		""" 
-		Stores or creates a function as the Functor's value.
-
-		If 'functionOrValue' is a function, it is stored directly.
-		However, if it is a value -- 7 for example -- then a function taking a single argument
-		which always returns that value is created and that function is stored as the Functor's 
-		value.
-
-		In general, you won't create 'Reader' instances directly. Instead use the @curry
-		decorator when defining functions. 'Reader' may not function as expected if 
-		non-curried functions are used.
-
-		"""
-
-		if (callable(functionOrValue)):
-			func = functionOrValue
-		else:
-			func = lambda _: functionOrValue
-
-		super(LazyReader, self).__init__(func)
 
 	def __call__(self, *args):
 		"""
@@ -57,33 +35,6 @@ class LazyReader(Monad):
 
 	def __mul__(self, func):
 		return func.fmap(self).fmap(force)
-
-	def fmap(self, aFunction):
-		""" 
-		Maps 'aFunction' over the function stored in the Functor itself.
-
-		Mapping a function over another function is equivalent to function composition.
-		In other words,
-			composedFunc = curriedFunc1 * curriedFunc2
-			composedFunc(parameter)
-		is equivalent to
-			composedFunc = lambda x: curriedFunc1(curriedFunc2(x))
-			composedFunc(parameter)
-
-		Both 'curriedFunc1' and 'curriedFunc2' must take only a single argument
-		but either, or both, can be partially applied so they have only a single argument
-		remaining.
-
-		"""
-		return LazyReader(lambda x: aFunction(self.getValue()(x)()))
-	
-	def amap(self, functorValue):
-		""" Applies function stored in the functor to 'functorValue' creating a new function. """
-		return LazyReader(lambda x: self(x)(functorValue(x)))
-
-	def bind(self, function):
-		""" Threads a single value through multiple function calls. """
-		return LazyReader(lambda x: function(self.getValue()(x))(x))
 
 	@classmethod
 	def unit(cls, value):
