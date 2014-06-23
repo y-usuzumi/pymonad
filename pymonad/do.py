@@ -3,7 +3,7 @@ from pymonad.LazyReader import lazy
 
 monad = None
 
-def do(withMonad, *monadicStatements):
+def do_with(withMonad, *monadicStatements):
 	global monad
 	monad = withMonad
 	def build_do_expression(ms):
