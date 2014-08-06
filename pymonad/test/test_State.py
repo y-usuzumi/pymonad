@@ -56,6 +56,14 @@ class TestStateEquality(unittest.TestCase, MonadTester):
 		self.givenMonads(unit(State, 8), Reader(8))
 		self.ensureComparisonRaisesException()
 
+class TestMiscState(unittest.TestCase):
+	def testFullyAppliedCurryEqualsState(self):
+		@curry
+		def f(x):
+			return State(lambda st: (x, st+1))
+
+		self.assertTrue(isinstance(f(3), State))
+
 if __name__ == "__main__":
 	unittest.main()
 

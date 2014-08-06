@@ -4,6 +4,7 @@
 # --------------------------------------------------------
 
 from pymonad.Monad import *
+from types import FunctionType
 
 class Reader(Monad):
 	""" Represents a Functor for functions allowing authors to map functions over other functions. """
@@ -51,7 +52,7 @@ class Reader(Monad):
 			except TypeError:
 				raise TypeError("Too many arguments supplied to curried function.")
 
-		if (callable(value)): return Reader(value)
+		if (isinstance(value, (FunctionType, Reader))): return Reader(value)
 		else: return value
 
 	def __mul__(self, func):
